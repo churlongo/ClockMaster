@@ -1,5 +1,7 @@
 package com.pranshulgg.clockmaster.screens.setting_screens
 
+import android.media.AudioManager
+import android.widget.Toast
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -21,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.pranshulgg.clockmaster.R
@@ -29,45 +32,44 @@ import com.pranshulgg.clockmaster.ui.components.SettingSection
 import com.pranshulgg.clockmaster.ui.components.SettingTile
 import com.pranshulgg.clockmaster.ui.components.SettingsTileIcon
 import com.pranshulgg.clockmaster.ui.components.Symbol
+import kotlin.math.roundToInt
 
 @OptIn(
     ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class,
     ExperimentalMaterial3ExpressiveApi::class
 )
 @Composable
-fun ClockSettings(
+fun ScreenSaverSettings(
     navController: NavController,
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    var is24hrFormat by remember {
+    var selectedScreenSaverBrightness by remember {
         mutableStateOf(
-            PreferencesHelper.getBool("is24hr") ?: false
+            PreferencesHelper.getInt("ScreenSaverBrightness") ?: 30
         )
     }
 
-    var showSecondsClock by remember {
+
+    var useFullBlackForScreenSaver by remember {
         mutableStateOf(
-            PreferencesHelper.getBool("showClockSeconds") ?: false
+            PreferencesHelper.getBool("useFullBlackForScreenSaver") ?: false
         )
     }
 
-    var confirmDeletingClock by remember {
+    var currentScreenSaverClockStyle by remember {
         mutableStateOf(
-            PreferencesHelper.getBool("confirmDeletingClockItem") ?: false
+            PreferencesHelper.getString("ScreenSaverClockStyle") ?: "Digital"
         )
     }
 
-    var currentWorldClockStyle by remember {
-        mutableStateOf(
-            PreferencesHelper.getString("WorldClockStyle") ?: "Digital"
-        )
-    }
+    val context = LocalContext.current
+
 
     Scaffold(
         topBar = {
             LargeTopAppBar(
-                title = { Text("Clock") },
+                title = { Text("Screen saver") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Symbol(
@@ -92,62 +94,48 @@ fun ClockSettings(
                 SettingSection(
                     title = "General",
                     tiles = listOf(
-                        SettingTile.SwitchTile(
-                            leading = { SettingsTileIcon(R.drawable.timer_10_select) },
-                            title = "Display time with seconds",
-                            checked = showSecondsClock,
-                            onCheckedChange = { checked ->
-                                showSecondsClock = checked
-                                PreferencesHelper.setBool("showClockSeconds", checked)
+                        SettingTile.DialogSliderTile(
+                            title = "Screen saver brightness",
+                            dialogTitle = "Brightness",
+                            description = "${selectedScreenSaverBrightness}%",
+                            isDescriptionAsValue = true,
+                            leading = { SettingsTileIcon(R.drawable.brightness_7) },
+                            initialValue = selectedScreenSaverBrightness.toFloat(),
+                            valueRange = 0f..100f,
+                            labelFormatter = { "${it.roundToInt()}%" },
+                            onValueSubmitted = { newValue ->
+                                val screenSaverBrightnessLevel = newValue.toInt()
+                                selectedScreenSaverBrightness = screenSaverBrightnessLevel
+                                PreferencesHelper.setInt(
+                                    "ScreenSaverBrightness",
+                                    screenSaverBrightnessLevel
+                                )
+
                             }
                         ),
 
-                        SettingTile.DialogOptionTile(
-                            leading = { SettingsTileIcon(R.drawable.nest_clock_farsight_analog_filled) },
-                            title = "Time format",
-                            options = listOf("12 hr", "24 hr"),
-                            selectedOption = if (is24hrFormat) "24 hr" else "12 hr",
-                            onOptionSelected = { selectedOption ->
-                                if (selectedOption == "24 hr") {
-                                    is24hrFormat = true
-                                    PreferencesHelper.setBool("is24hr", true)
-                                } else {
-                                    is24hrFormat = false
-                                    PreferencesHelper.setBool("is24hr", false)
-                                }
+                        SettingTile.SwitchTile(
+                            leading = { SettingsTileIcon(R.drawable.backlight_high_off) },
+                            title = "Night mode",
+                            description = "Uses a full black scheme for dark rooms",
+                            checked = useFullBlackForScreenSaver,
+                            onCheckedChange = { checked ->
+                                useFullBlackForScreenSaver = checked
+                                PreferencesHelper.setBool("useFullBlackForScreenSaver", checked)
                             }
                         ),
                         SettingTile.DialogOptionTile(
                             leading = { SettingsTileIcon(R.drawable.farsight_digital) },
                             title = "Clock style",
                             options = listOf("Digital", "Analog"),
-                            selectedOption = currentWorldClockStyle,
+                            selectedOption = currentScreenSaverClockStyle,
                             onOptionSelected = { selectedOption ->
-                                currentWorldClockStyle = selectedOption
-                                PreferencesHelper.setString("WorldClockStyle", selectedOption)
-                            }
-                        ),
-                    )
-
-
-                )
-                Spacer(Modifier.height(10.dp))
-                SettingSection(
-                    title = "Behavior",
-                    tiles = listOf(
-                        SettingTile.SwitchTile(
-                            leading = { SettingsTileIcon(R.drawable.warning) },
-                            title = "Confirm before deleting",
-                            description = "Ask for confirmation before removing a world clock item",
-                            checked = confirmDeletingClock,
-                            onCheckedChange = { checked ->
-                                confirmDeletingClock = checked
-                                PreferencesHelper.setBool("confirmDeletingClockItem", checked)
+                                currentScreenSaverClockStyle = selectedOption
+                                PreferencesHelper.setString("ScreenSaverClockStyle", selectedOption)
                             }
                         ),
                     )
                 )
-
             }
         }
 
